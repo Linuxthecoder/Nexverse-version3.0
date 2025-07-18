@@ -7,18 +7,6 @@ import { registerAxiosInterceptors } from "./lib/axios";
 
 registerAxiosInterceptors();
 
-// Console override to only allow one specific log
-const origConsole = { ...console };
-console.log = function(...args) {
-  if (args.length === 2 && args[0] === allowedMsg[0] && args[1] === allowedMsg[1]) {
-    origConsole.log(...args);
-  }
-};
-console.warn = function(){};
-console.error = function(){};
-console.info = function(){};
-console.debug = function(){};
-
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
