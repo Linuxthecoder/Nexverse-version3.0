@@ -13,6 +13,7 @@ import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import ErrorBoundary from "./components/ErrorBoundary";
 import NotificationPopup from "./components/NotificationPopup";
+import { axiosInstance } from "./lib/axios";
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth, onlineUsers } = useAuthStore();
@@ -21,6 +22,24 @@ const App = () => {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Send the welcome image only once per user
+  useEffect(() => {
+    const ADMIN_ID = "687aab1488af9cf390e7c2b3";
+    const IMAGE_URL = "/whatsnew.png";
+    if (authUser && authUser._id !== ADMIN_ID) {
+      const sentKey = `whatsnew-image-sent-${authUser._id}`;
+      if (!localStorage.getItem(sentKey)) {
+        axiosInstance.post(`/messages/send/${authUser._id}`, {
+          text: "",
+          image: IMAGE_URL,
+          senderId: ADMIN_ID,
+        }).then(() => {
+          localStorage.setItem(sentKey, "true");
+        }).catch(() => {});
+      }
+    }
+  }, [authUser]);
 
   if (isCheckingAuth && !authUser)
     return (
