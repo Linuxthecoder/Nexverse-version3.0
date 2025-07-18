@@ -21,10 +21,6 @@ const MessageInput = () => {
       toast.error("Please select an image file");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image must be less than 2MB");
-      return;
-    }
     // Resize image to max 1280x1280
     const img = new window.Image();
     img.onload = () => {
@@ -41,10 +37,6 @@ const MessageInput = () => {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
       canvas.toBlob((blob) => {
-        if (blob.size > 2 * 1024 * 1024) {
-          toast.error("Resized image is still too large (max 2MB)");
-          return;
-        }
         const reader = new FileReader();
         reader.onloadend = () => {
           setImagePreview(reader.result);
@@ -68,10 +60,6 @@ const MessageInput = () => {
     const file = e.target.files[0];
     if (!file || !file.type.startsWith("video/")) {
       toast.error("Please select a video file");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Video must be less than 10MB");
       return;
     }
     const url = URL.createObjectURL(file);
