@@ -2,6 +2,7 @@ import { MessageSquare } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useNavigate } from "react-router-dom";
+import { useThemeStore } from "../store/useThemeStore";
 
 const useMouseGradient = (ref) => {
   useEffect(() => {
@@ -152,6 +153,7 @@ const NoChatSelected = () => {
   useStarfield(canvasRef);
   const setSelectedUser = useChatStore((s) => s.setSelectedUser);
   const navigate = useNavigate();
+  const { theme } = useThemeStore();
 
   const handleAuraClick = () => {
     setSelectedUser({ _id: "aura", fullName: "Aura" });
@@ -165,7 +167,7 @@ const NoChatSelected = () => {
   return (
     <div
       ref={containerRef}
-      className="relative w-full flex flex-1 flex-col items-center justify-center p-8 sm:p-16 bg-gradient-to-br from-base-100/90 to-base-200/80 backdrop-blur-md overflow-hidden"
+      className="relative w-full flex flex-1 flex-col items-center justify-center p-4 sm:p-8 md:p-16 bg-gradient-to-br from-base-100/90 to-base-200/80 backdrop-blur-md overflow-hidden"
     >
       <canvas
         ref={canvasRef}
@@ -206,8 +208,11 @@ const NoChatSelected = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative bg-base-100/95 p-6 rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          data-theme={theme}
+        >
+          <div className="relative bg-base-100 p-6 sm:p-8 rounded-xl shadow-2xl max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
                 What's New in NexVerse
