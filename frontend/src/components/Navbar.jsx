@@ -18,18 +18,28 @@ const Navbar = ({ onHamburgerClick }) => {
       <div className="container mx-auto px-4 h-16">
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-8">
+            {/* Hamburger button for mobile */}
+            <button
+              className="sm:hidden flex items-center gap-2 px-2 py-1 rounded hover:bg-base-200 transition-all"
+              aria-label="Open sidebar menu"
+              onClick={onHamburgerClick}
+              type="button"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            {/* App logo and name for mobile */}
             <Link
               to="/"
               className="sm:hidden flex items-center gap-2 px-2 py-1 rounded hover:bg-base-200 transition-all"
               aria-label="Go to main page"
               style={{ textDecoration: 'none' }}
             >
-              <Menu className="w-6 h-6" />
               <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center">
                 <MessageSquare className="w-4 h-4 text-primary" />
               </div>
               <span className="text-base font-bold">NexVerse</span>
             </Link>
+            {/* App logo and name for desktop */}
             <Link to="/" className="hidden sm:flex items-center gap-2.5 hover:opacity-80 transition-all">
               <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-primary" />
