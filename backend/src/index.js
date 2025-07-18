@@ -49,6 +49,16 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
+if (process.env.NODE_ENV === "production") {
+  // Serve static files from the frontend build
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+  // For any route not handled by your API, serve index.html
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+  });
+}
+
 // 404 handler for unknown routes
 app.use((req, res, next) => {
   res.status(404).json({ message: "Resource not found" });
@@ -87,14 +97,6 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === "development" ? err.stack : undefined,
   });
 });
-
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
-  });
-}
 
 server.listen(PORT, () => {
   console.log("server is running on PORT:" + PORT);
