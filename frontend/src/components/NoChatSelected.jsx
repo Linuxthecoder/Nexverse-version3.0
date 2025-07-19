@@ -134,7 +134,7 @@ const useStarfield = (canvasRef) => {
 
     animate();
     launchStars();
-    const interval = setInterval(launchStars, 1000);
+    const interval = setInterval(launchStars, 10000);
 
     window.addEventListener("resize", () => {
       canvas.width = canvas.clientWidth;
