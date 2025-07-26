@@ -1,9 +1,7 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
-import { useAuthStore } from "../store/useAuthStore";
 import { Image, Send, X, Camera } from "lucide-react";
 import toast from "react-hot-toast";
-import imageCompression from "browser-image-compression";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
@@ -16,70 +14,49 @@ const MessageInput = () => {
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const { sendMessage } = useChatStore();
-  const { selectedUser } = useChatStore();
-  const { startTyping, stopTyping } = useAuthStore();
-  const typingTimeoutRef = useRef(null);
 
-  // Handle typing indicators
-  useEffect(() => {
-    if (!selectedUser?._id) return;
-
-    if (text.trim()) {
-      startTyping(selectedUser._id);
-      
-      // Clear existing timeout
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      
-      // Set timeout to stop typing indicator
-      typingTimeoutRef.current = setTimeout(() => {
-        stopTyping(selectedUser._id);
-      }, 2000);
-    } else {
-      stopTyping(selectedUser._id);
-    }
-
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, [text, selectedUser?._id, startTyping, stopTyping]);
-
-  // Cleanup typing indicator when component unmounts or user changes
-  useEffect(() => {
-    return () => {
-      if (selectedUser?._id) {
-        stopTyping(selectedUser._id);
-      }
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, [selectedUser?._id, stopTyping]);
-
-  // Compress and handle image upload
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    try {
-      // Compress image
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1024,
-        useWebWorker: true,
-      };
-      const compressedFile = await imageCompression(file, options);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(compressedFile);
-    } catch (error) {
-      toast.error("Failed to compress image");
-      setImagePreview(null);
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
     }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+    // Resize image to max 1280x1280
+    const img = new window.Image();
+    img.onload = () => {
+      const maxDim = 1280;
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const scale = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (blob.size > 2 * 1024 * 1024) {
+          toast.error("Resized image is still too large (max 2MB)");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+        };
+        reader.readAsDataURL(blob);
+      }, file.type, 0.92);
+    };
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   const removeImage = () => {
@@ -91,6 +68,10 @@ const MessageInput = () => {
     const file = e.target.files[0];
     if (!file || !file.type.startsWith("video/")) {
       toast.error("Please select a video file");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Video must be less than 10MB");
       return;
     }
     const url = URL.createObjectURL(file);
