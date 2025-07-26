@@ -1,7 +1,9 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
+import { useAuthStore } from "../store/useAuthStore";
 import { Image, Send, X, Camera } from "lucide-react";
 import toast from "react-hot-toast";
+import imageCompression from "browser-image-compression";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
@@ -14,41 +16,70 @@ const MessageInput = () => {
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const { sendMessage } = useChatStore();
+  const { selectedUser } = useChatStore();
+  const { startTyping, stopTyping } = useAuthStore();
+  const typingTimeoutRef = useRef(null);
 
+  // Handle typing indicators
+  useEffect(() => {
+    if (!selectedUser?._id) return;
+
+    if (text.trim()) {
+      startTyping(selectedUser._id);
+      
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Set timeout to stop typing indicator
+      typingTimeoutRef.current = setTimeout(() => {
+        stopTyping(selectedUser._id);
+      }, 2000);
+    } else {
+      stopTyping(selectedUser._id);
+    }
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [text, selectedUser?._id, startTyping, stopTyping]);
+
+  // Cleanup typing indicator when component unmounts or user changes
+  useEffect(() => {
+    return () => {
+      if (selectedUser?._id) {
+        stopTyping(selectedUser._id);
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [selectedUser?._id, stopTyping]);
+
+  // Compress and handle image upload
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
-      return;
+    if (!file) return;
+    try {
+      // Compress image
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (error) {
+      toast.error("Failed to compress image");
+      setImagePreview(null);
     }
-    // Resize image to max 1280x1280
-    const img = new window.Image();
-    img.onload = () => {
-      const maxDim = 1280;
-      let { width, height } = img;
-      if (width > maxDim || height > maxDim) {
-        const scale = Math.min(maxDim / width, maxDim / height);
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob((blob) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setImagePreview(reader.result);
-        };
-        reader.readAsDataURL(blob);
-      }, file.type, 0.92);
-    };
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
   };
 
   const removeImage = () => {
@@ -56,14 +87,41 @@ const MessageInput = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleVideoChange = (e) => {
+  // Video size/duration limit
+  const MAX_VIDEO_SIZE_MB = 20;
+  const MAX_VIDEO_DURATION_SEC = 60;
+
+  const handleVideoChange = async (e) => {
     const file = e.target.files[0];
-    if (!file || !file.type.startsWith("video/")) {
+    if (!file) return;
+    if (!file.type.startsWith("video/")) {
       toast.error("Please select a video file");
       return;
     }
+    // Check file size
+    const sizeMB = file.size / (1024 * 1024);
+    if (sizeMB > MAX_VIDEO_SIZE_MB) {
+      toast.error(`Video is too large. Max allowed size is ${MAX_VIDEO_SIZE_MB}MB.`);
+      return;
+    }
+    // Check duration
     const url = URL.createObjectURL(file);
-    setVideoPreview(url);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      if (video.duration > MAX_VIDEO_DURATION_SEC) {
+        toast.error(`Video is too long. Max allowed duration is ${MAX_VIDEO_DURATION_SEC} seconds.`);
+        return;
+      }
+      // If valid, set preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setVideoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    };
+    video.src = url;
   };
 
   const handleStartRecording = async () => {
