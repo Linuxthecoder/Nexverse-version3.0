@@ -87,41 +87,14 @@ const MessageInput = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Video size/duration limit
-  const MAX_VIDEO_SIZE_MB = 20;
-  const MAX_VIDEO_DURATION_SEC = 60;
-
-  const handleVideoChange = async (e) => {
+  const handleVideoChange = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith("video/")) {
+    if (!file || !file.type.startsWith("video/")) {
       toast.error("Please select a video file");
       return;
     }
-    // Check file size
-    const sizeMB = file.size / (1024 * 1024);
-    if (sizeMB > MAX_VIDEO_SIZE_MB) {
-      toast.error(`Video is too large. Max allowed size is ${MAX_VIDEO_SIZE_MB}MB.`);
-      return;
-    }
-    // Check duration
     const url = URL.createObjectURL(file);
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(url);
-      if (video.duration > MAX_VIDEO_DURATION_SEC) {
-        toast.error(`Video is too long. Max allowed duration is ${MAX_VIDEO_DURATION_SEC} seconds.`);
-        return;
-      }
-      // If valid, set preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setVideoPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    };
-    video.src = url;
+    setVideoPreview(url);
   };
 
   const handleStartRecording = async () => {
